@@ -4,21 +4,21 @@ const Storage = (() => {
   const defaults = [
     {
       id: 'default-1',
-      name: 'Calm Breathing',
-      phase1: { sets: 5, inhaleDuration: 4, exhaleDuration: 6 },
-      phase2: { sets: 3, inhaleDuration: 6, exhaleDuration: 8 }
+      name: 'Autogenic Drainage',
+      phase1: { sets: 10, inhaleDuration: 2, exhaleDuration: 5 },
+      phase2: { sets: 10, inhaleDuration: 4, exhaleDuration: 6 }
     },
     {
       id: 'default-2',
-      name: 'Box Breathing',
-      phase1: { sets: 6, inhaleDuration: 4, exhaleDuration: 4 },
-      phase2: { sets: 4, inhaleDuration: 6, exhaleDuration: 6 }
+      name: 'Quick Relief',
+      phase1: { sets: 5, inhaleDuration: 2, exhaleDuration: 4 },
+      phase2: { sets: 5, inhaleDuration: 3, exhaleDuration: 5 }
     },
     {
       id: 'default-3',
-      name: 'Deep Relaxation',
-      phase1: { sets: 4, inhaleDuration: 5, exhaleDuration: 8 },
-      phase2: { sets: 3, inhaleDuration: 7, exhaleDuration: 10 }
+      name: 'Extended Session',
+      phase1: { sets: 15, inhaleDuration: 3, exhaleDuration: 6 },
+      phase2: { sets: 15, inhaleDuration: 5, exhaleDuration: 8 }
     }
   ];
 

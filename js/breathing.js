@@ -5,13 +5,15 @@ class BreathingExercise {
     this.phases = [program.phase1, program.phase2];
     this.phaseIndex = 0;
     this.setIndex = 0;
-    this.isInhale = true;
+    this.breathState = 'inhale'; // 'inhale' | 'hold' | 'exhale'
+    this.holdDuration = 3; // seconds
     this.running = false;
     this.paused = false;
     this._timer = null;
-    this._elapsed = 0; // ms elapsed in current breath
+    this._elapsed = 0; // ms elapsed in current step
     this._lastTick = 0;
     this._tickTimer = null;
+    this._holdTimers = []; // for hold countdown speech
   }
 
   get currentPhase() {
@@ -19,11 +21,26 @@ class BreathingExercise {
   }
 
   get currentDuration() {
-    return this.isInhale ? this.currentPhase.inhaleDuration : this.currentPhase.exhaleDuration;
+    if (this.breathState === 'inhale') return this.currentPhase.inhaleDuration;
+    if (this.breathState === 'hold') return this.holdDuration;
+    return this.currentPhase.exhaleDuration;
   }
 
   get remainingMs() {
     return this.currentDuration * 1000 - this._elapsed;
+  }
+
+  get totalSets() {
+    let total = 0;
+    for (const phase of this.phases) total += phase.sets;
+    return total;
+  }
+
+  get completedSets() {
+    let done = 0;
+    for (let i = 0; i < this.phaseIndex; i++) done += this.phases[i].sets;
+    done += this.setIndex;
+    return done;
   }
 
   start() {
@@ -31,12 +48,12 @@ class BreathingExercise {
     this.paused = false;
     this.phaseIndex = 0;
     this.setIndex = 0;
-    this.isInhale = true;
+    this.breathState = 'inhale';
     this._elapsed = 0;
 
     this._notifyPhase();
     this._notifySet();
-    this._startBreath();
+    this._startStep();
   }
 
   pause() {
@@ -44,14 +61,19 @@ class BreathingExercise {
     this.paused = true;
     clearTimeout(this._timer);
     clearInterval(this._tickTimer);
-    // Capture how much time passed since last schedule
+    this._clearHoldTimers();
     this._elapsed += Date.now() - this._lastTick;
   }
 
   resume() {
     if (!this.running || !this.paused) return;
     this.paused = false;
-    this._scheduleNext(this.remainingMs);
+    const remaining = this.remainingMs;
+    this._scheduleNext(remaining);
+    // Re-schedule hold countdown speech if resuming during hold
+    if (this.breathState === 'hold') {
+      this._scheduleHoldSpeech(remaining);
+    }
     this._startTicking();
   }
 
@@ -60,19 +82,49 @@ class BreathingExercise {
     this.paused = false;
     clearTimeout(this._timer);
     clearInterval(this._tickTimer);
+    this._clearHoldTimers();
   }
 
-  _startBreath() {
+  _startStep() {
     this._elapsed = 0;
-    const type = this.isInhale ? 'inhale' : 'exhale';
+    const state = this.breathState;
     const duration = this.currentDuration;
 
     if (this.cb.onBreathChange) {
-      this.cb.onBreathChange(type, duration);
+      this.cb.onBreathChange(state, duration);
+    }
+
+    if (state === 'hold') {
+      this._scheduleHoldSpeech(duration * 1000);
     }
 
     this._scheduleNext(duration * 1000);
     this._startTicking();
+  }
+
+  _scheduleHoldSpeech(remainingMs) {
+    this._clearHoldTimers();
+    // "hold" at the start, "two" at 2s left, "one" at 1s left
+    const words = [
+      { text: 'hold', atRemaining: remainingMs },
+      { text: 'two', atRemaining: 2000 },
+      { text: 'one', atRemaining: 1000 }
+    ];
+    for (const w of words) {
+      const delay = remainingMs - w.atRemaining;
+      if (delay >= 0) {
+        this._holdTimers.push(
+          setTimeout(() => {
+            if (this.cb.onHoldSpeak) this.cb.onHoldSpeak(w.text);
+          }, delay)
+        );
+      }
+    }
+  }
+
+  _clearHoldTimers() {
+    for (const t of this._holdTimers) clearTimeout(t);
+    this._holdTimers = [];
   }
 
   _scheduleNext(ms) {
@@ -82,7 +134,6 @@ class BreathingExercise {
 
   _startTicking() {
     clearInterval(this._tickTimer);
-    // Tick every 100ms for countdown display
     this._tickTimer = setInterval(() => {
       if (!this.running || this.paused) return;
       const now = Date.now();
@@ -96,23 +147,26 @@ class BreathingExercise {
 
   _advance() {
     clearInterval(this._tickTimer);
+    this._clearHoldTimers();
 
-    if (this.isInhale) {
+    if (this.breathState === 'inhale') {
+      // Move to hold
+      this.breathState = 'hold';
+      this._startStep();
+    } else if (this.breathState === 'hold') {
       // Move to exhale
-      this.isInhale = false;
-      this._startBreath();
+      this.breathState = 'exhale';
+      this._startStep();
     } else {
-      // Finished one set
-      this.isInhale = true;
+      // Exhale done — finished one set
+      this.breathState = 'inhale';
       this.setIndex++;
 
       if (this.setIndex >= this.currentPhase.sets) {
-        // Phase complete
         this.phaseIndex++;
         this.setIndex = 0;
 
         if (this.phaseIndex >= this.phases.length) {
-          // All done
           this.running = false;
           if (this.cb.onComplete) this.cb.onComplete();
           return;
@@ -122,7 +176,7 @@ class BreathingExercise {
       }
 
       this._notifySet();
-      this._startBreath();
+      this._startStep();
     }
   }
 
@@ -134,7 +188,12 @@ class BreathingExercise {
 
   _notifySet() {
     if (this.cb.onSetChange) {
-      this.cb.onSetChange(this.setIndex + 1, this.currentPhase.sets);
+      this.cb.onSetChange(
+        this.setIndex + 1,
+        this.currentPhase.sets,
+        this.completedSets,
+        this.totalSets
+      );
     }
   }
 }

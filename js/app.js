@@ -23,7 +23,8 @@
     btnExerciseBack: document.getElementById('btn-exercise-back'),
     exerciseTitle: document.getElementById('exercise-title'),
     exercisePhase: document.getElementById('exercise-phase'),
-    exerciseSet: document.getElementById('exercise-set'),
+    currentBreath: document.getElementById('exercise-current-breath'),
+    breathsRemaining: document.getElementById('exercise-breaths-remaining'),
     breathingCircle: document.getElementById('breathing-circle'),
     breathingLabel: document.getElementById('breathing-label'),
     breathingTimer: document.getElementById('breathing-timer'),
@@ -156,8 +157,10 @@
     els.exerciseTitle.textContent = program.name;
     els.breathingLabel.textContent = 'Ready';
     els.breathingTimer.textContent = '';
-    els.exercisePhase.textContent = 'Phase 1';
-    els.exerciseSet.textContent = `Set 1 / ${program.phase1.sets}`;
+    els.exercisePhase.textContent = 'Phase 1: Unsticking';
+    const totalSets = program.phase1.sets + program.phase2.sets;
+    els.currentBreath.textContent = 'Current Breath: 1';
+    els.breathsRemaining.textContent = `Breaths Remaining: ${program.phase1.sets - 1}`;
     els.btnStart.textContent = 'Start';
     els.btnStart.classList.remove('hidden');
     els.btnPause.classList.add('hidden');
@@ -169,7 +172,8 @@
       onSetChange,
       onPhaseChange,
       onComplete,
-      onTick
+      onTick,
+      onHoldSpeak: (text) => Audio.speak(text)
     });
 
     showView('exercise');
@@ -177,29 +181,35 @@
 
   function resetCircle() {
     const circle = els.breathingCircle;
-    circle.classList.remove('animating', 'exhale');
+    circle.classList.remove('animating', 'exhale', 'hold');
     circle.style.transitionDuration = '';
     circle.style.transform = 'scale(0.6)';
   }
 
-  function onBreathChange(type, duration) {
+  function onBreathChange(state, duration) {
     const circle = els.breathingCircle;
+    const isPhase2 = exercise && exercise.phaseIndex === 1;
 
-    if (type === 'inhale') {
-      Audio.speak('breathe in');
+    if (state === 'inhale') {
+      Audio.speak(isPhase2 ? 'deep breathe in' : 'short breathe in');
       els.breathingLabel.textContent = 'Breathe In';
-      circle.classList.remove('exhale');
-      // Reset to small, then animate to large
+      circle.classList.remove('exhale', 'hold');
       circle.classList.remove('animating');
       circle.style.transform = 'scale(0.6)';
-      // Force reflow to restart transition
       void circle.offsetWidth;
       circle.classList.add('animating');
       circle.style.transitionDuration = duration + 's';
       circle.style.transform = 'scale(1)';
+    } else if (state === 'hold') {
+      els.breathingLabel.textContent = 'Hold';
+      circle.classList.remove('animating', 'exhale');
+      circle.classList.add('hold');
+      circle.style.transitionDuration = '';
+      circle.style.transform = 'scale(1)';
     } else {
-      Audio.speak('breathe out');
+      Audio.speak('out');
       els.breathingLabel.textContent = 'Breathe Out';
+      circle.classList.remove('hold');
       circle.classList.add('exhale');
       circle.classList.remove('animating');
       circle.style.transform = 'scale(1)';
@@ -210,14 +220,18 @@
     }
   }
 
-  function onSetChange(current, total) {
-    els.exerciseSet.textContent = `Set ${current} / ${total}`;
+  const phaseNames = { 1: 'Unsticking', 2: 'Collecting' };
+
+  function onSetChange(current, phaseSets, completedTotal, grandTotal) {
+    els.currentBreath.textContent = `Current Breath: ${current}`;
+    els.breathsRemaining.textContent = `Breaths Remaining: ${phaseSets - current}`;
   }
 
   function onPhaseChange(current, total) {
-    els.exercisePhase.textContent = `Phase ${current}`;
+    const name = phaseNames[current] || '';
+    els.exercisePhase.textContent = `Phase ${current}: ${name}`;
     if (current > 1) {
-      Audio.speak(`Phase ${current}`);
+      Audio.speak(`Phase ${current}, ${name}`);
     }
   }
 
@@ -229,6 +243,9 @@
     Audio.speak('Exercise complete. Well done.');
     els.breathingLabel.textContent = 'Done';
     els.breathingTimer.textContent = '';
+    const lastPhase = exercise.phases[exercise.phases.length - 1];
+    els.currentBreath.textContent = `Current Breath: ${lastPhase.sets}`;
+    els.breathsRemaining.textContent = 'Breaths Remaining: 0';
     resetCircle();
     els.btnStart.textContent = 'Restart';
     els.btnStart.classList.remove('hidden');
