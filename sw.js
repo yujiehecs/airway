@@ -1,4 +1,4 @@
-const CACHE_NAME = 'airway-v7';
+const CACHE_NAME = 'airway-v8';
 const ASSETS = [
   './',
   './index.html',

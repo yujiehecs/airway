@@ -35,6 +35,23 @@
   let currentView = 'home';
   let editingProgramId = null;
   let exercise = null;
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      } catch (_) { /* user denied or not supported */ }
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+    }
+  }
 
   // View management
   function showView(name) {
@@ -240,6 +257,7 @@
   }
 
   function onComplete() {
+    releaseWakeLock();
     Audio.speak('Exercise complete. Well done.');
     els.breathingLabel.textContent = 'Done';
     els.breathingTimer.textContent = '';
@@ -257,6 +275,7 @@
     Audio.init();
     if (exercise) {
       exercise.start();
+      requestWakeLock();
       els.btnStart.classList.add('hidden');
       els.btnPause.classList.remove('hidden');
       els.btnPause.textContent = 'Pause';
@@ -284,6 +303,7 @@
       exercise.stop();
       Audio.stop();
     }
+    releaseWakeLock();
     resetCircle();
     showView('home');
     renderProgramList();
@@ -295,6 +315,9 @@
       exercise.pause();
       els.btnPause.textContent = 'Resume';
       els.breathingCircle.classList.remove('animating');
+    } else if (!document.hidden && exercise && exercise.running) {
+      // Re-acquire wake lock when returning (iOS releases it on hide)
+      requestWakeLock();
     }
   });
 
