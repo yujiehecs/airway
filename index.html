@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Airway</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0a1a">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Airway">
+  <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Home Screen -->
+  <div id="screen-home" class="screen active">
+    <header class="screen-header">
+      <h1>Airway</h1>
+    </header>
+    <div class="screen-content">
+      <div id="program-list" class="program-list"></div>
+      <button id="btn-add-program" class="btn btn-primary btn-full">New Program</button>
+    </div>
+  </div>
+
+  <!-- Editor Screen -->
+  <div id="screen-editor" class="screen">
+    <header class="screen-header">
+      <button id="btn-editor-back" class="btn btn-back" aria-label="Back">&#8592;</button>
+      <h1 id="editor-title">New Program</h1>
+      <button id="btn-delete-program" class="btn btn-delete" aria-label="Delete">Delete</button>
+    </header>
+    <div class="screen-content">
+      <form id="program-form" novalidate>
+        <label class="field">
+          <span class="field-label">Program Name</span>
+          <input type="text" id="field-name" required maxlength="40" placeholder="e.g. Morning Routine">
+        </label>
+
+        <fieldset class="phase-fieldset">
+          <legend>Phase 1</legend>
+          <label class="field">
+            <span class="field-label">Sets</span>
+            <input type="number" id="field-p1-sets" min="1" max="99" required placeholder="5">
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Inhale (sec)</span>
+              <input type="number" id="field-p1-inhale" min="1" max="60" required placeholder="4">
+            </label>
+            <label class="field">
+              <span class="field-label">Exhale (sec)</span>
+              <input type="number" id="field-p1-exhale" min="1" max="60" required placeholder="6">
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="phase-fieldset">
+          <legend>Phase 2</legend>
+          <label class="field">
+            <span class="field-label">Sets</span>
+            <input type="number" id="field-p2-sets" min="1" max="99" required placeholder="3">
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">Inhale (sec)</span>
+              <input type="number" id="field-p2-inhale" min="1" max="60" required placeholder="6">
+            </label>
+            <label class="field">
+              <span class="field-label">Exhale (sec)</span>
+              <input type="number" id="field-p2-exhale" min="1" max="60" required placeholder="8">
+            </label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary btn-full">Save Program</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Exercise Screen -->
+  <div id="screen-exercise" class="screen">
+    <header class="screen-header">
+      <button id="btn-exercise-back" class="btn btn-back" aria-label="Stop">&#8592;</button>
+      <h1 id="exercise-title">Exercise</h1>
+    </header>
+    <div class="screen-content exercise-content">
+      <div class="exercise-info">
+        <span id="exercise-phase">Phase 1</span>
+        <span id="exercise-set">Set 1 / 5</span>
+      </div>
+      <div class="breathing-ring">
+        <div id="breathing-circle" class="breathing-circle">
+          <span id="breathing-label" class="breathing-label">Ready</span>
+          <span id="breathing-timer" class="breathing-timer"></span>
+        </div>
+      </div>
+      <div class="exercise-controls">
+        <button id="btn-start-exercise" class="btn btn-primary btn-large">Start</button>
+        <button id="btn-pause-exercise" class="btn btn-secondary btn-large hidden">Pause</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background audio for keeping audio session alive on iOS -->
+  <audio id="silent-audio" loop preload="auto">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+  </audio>
+
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/breathing.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
